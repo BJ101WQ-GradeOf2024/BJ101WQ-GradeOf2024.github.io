@@ -1,0 +1,92 @@
+$(function() {
+
+	function getDirect(e, $this) {
+		
+		
+		var w = $this.width();
+		var h = $this.height();
+		var x = (e.pageX - $this[0].offsetLeft - (w / 2)) * (w > h ? (h / w) : 1);
+		var y = (e.pageY - $this[0].offsetTop - (h / 2)) * (h > w ? (w / h) : 1);
+		var direction = Math.round((((Math.atan2(y, x) * (180 / Math.PI)) + 180) / 90) + 3) % 4; //direction的值为“0,1,2,3”分别对应着“上，右，下，左”
+		
+		
+		var eventType = e.type;
+		var dirName = new Array('上方', '右方', '下方', '左方');
+		if(e.type == 'mouseenter') {
+			return dirName[direction] + '进入';
+		} else {
+			return dirName[direction] + '离开';
+		}
+	}
+
+	$(".cover").mouseenter(function(e) {
+
+		var dir = getDirect(e, $(this));
+		var $content = $(this).find("div[class^='layer-']").show();
+		var time = 300;
+		if(dir == "上方进入") {
+			$content.css({
+				"top": "-100%",
+				"left": "0"
+			}).stop().animate({
+				"top": "0"
+			}, time);
+		} else if(dir == "左方进入") {
+			$content.css({
+				"left": "-100%",
+				"top": "0"
+			}).stop().animate({
+				"left": "0"
+			}, time);
+		} else if(dir == "下方进入") {
+			$content.css({
+				"top": "100%",
+				"left": "0"
+			}).stop().animate({
+				"top": "0"
+			}, time);
+		} else if(dir == "右方进入") {
+
+			$content.css({
+				"left": "100%",
+				"top": "0"
+			}).stop().animate({
+				"left": "0",
+				"top": "0"
+			}, time);
+		}
+		//						
+	});
+
+	$(".cover").mouseleave(function(e) {
+
+		var dir = getDirect(e, $(this));
+		var $content = $(this).find("div[class^='layer-']");
+		var time = 300;
+
+		if(dir == "上方离开") {
+			$content.stop().animate({
+				"top": "-100%",
+				"left": "0"
+			}, time);
+		} else if(dir == "左方离开") {
+			$content.stop().animate({
+				"left": "-100%",
+				"top": "0"
+			}, time);
+		} else if(dir == "右方离开") {
+			$content.stop().animate({
+				"left": "100%",
+				"top": "0"
+			}, time);
+		} else if(dir == "下方离开") {
+			$content.stop().animate({
+				"top": "100%",
+				"left": "0"
+			}, time);
+		}
+		//					$content.hide();
+		//						
+	});
+
+})

@@ -1,0 +1,137 @@
+// 重构一下dialog
+if (top.$ && top.$.dialog && top.$ !== $) {
+	$.dialog = top.lhgdialog;
+	var dialogs = $.dialog.list;
+	var _tmpDlg = $.dialog;
+	$.dialog = function(dlgOption) {
+		if (dlgOption.content && dlgOption.content.indexOf('url:') == 0) {
+			if (!dlgOption.init) {
+				dlgOption.init = function() {
+					this.content.currentDialog = this;
+					this.content.dialogOpener = window;
+					if (this.content.dialogInit) {
+						this.content.dialogInit();
+					}
+				}
+			} else {
+				var _dlgInit = dlgOption.init;
+				dlgOption.init = function() {
+					this.content.currentDialog = this;
+					this.content.dialogOpener = window;
+					_dlgInit.call(this);
+					if (this.content.dialogInit) {
+						this.content.dialogInit();
+					}
+				}
+			}
+			var newDlg = _tmpDlg(dlgOption);
+			newDlg.loading = function() {
+				var loadDiv = $(this._load);
+				loadDiv.show();
+				loadDiv.css({
+					filter : 'alpha(opacity=0.5)',
+					opacity : 0.5,
+					'z-index' : 2
+				});
+			};
+			newDlg.loaded = function() {
+				var loadDiv = $(this._load);
+				loadDiv.css({
+					filter : 'alpha(opacity=0)',
+					opacity : 0
+				});
+				loadDiv.hide();
+			};
+			newDlg.disableBtn = function(name) {
+				var btns = this.DOM.buttons[0].childNodes;
+				for ( var i = 0; i < btns.length; i++) {
+					if (btns[i].value == name) {
+						btns[i].disabled = true;
+						break;
+					}
+				}
+			};
+			newDlg.enableBtn = function(name) {
+				var btns = this.DOM.buttons[0].childNodes;
+				for ( var i = 0; i < btns.length; i++) {
+					if (btns[i].value == name) {
+						btns[i].disabled = false;
+						break;
+					}
+				}
+			};
+			return newDlg;
+		}
+
+	}
+	$.extend($.dialog, _tmpDlg);
+}
+// 扩展主框架的方法
+if (top != self) {
+	window.PF = {
+		// 打开下一层页面
+		open : function(url, backCallback) {
+			setTimeout(function() {
+				top.f_addTab(currentTabId, '', url, true);
+			}, 0);
+			if (backCallback) {
+				window.tabBackCallback = backCallback;
+			}
+		},
+		back : function(callback, index) {
+			top.tabBack(currentTabId, callback, index);
+		},
+		updateOne : function(url, id, context) {
+			context = context || document;
+			var me = this;
+			ajaSubmit({
+				url : url + id,
+				onSuccess : function(data) {
+					me.updateOneEl(data, id, context);
+				}
+			});
+		},
+		updateOneEl : function(html, id, msg, context) {
+			context = context || document;
+			$('[data-trid="' + id + '"]', context).replaceWith(html);
+		},
+		deleteOne : function(url, id, context) {
+			context = context || document;
+			function ok() {
+				ajaSubmit({
+					url : url + id,
+					onSuccess : function(data) {
+						if (data == 1 || data.success) {
+							me.deleteOneEl(id, context);
+							$.dialog.tips('删除成功！', 2, 'succ.png');
+						} else {
+							$.dialog.tips(data.message || '删除失败！', 2,
+									'tips.gif');
+						}
+					},
+					onError : function(data) {
+						$.dialog.tips(data.message || '删除失败！', 2, 'tips.gif');
+					}
+				});
+			}
+			$.dialog.confirm(msg || "您确定删除该数据吗？", ok);
+		},
+		deleteOneEl : function(id, context) {
+			context = context || document;
+			$('[data-trid="' + id + '"]', context).remove();
+		}
+	};
+	// 统一处理 <a data-taburl="http://wwww.baidu.com"
+	// data-tabbackfun="loadCurrentPage"
+	$(function() {
+		$('body').delegate('a[data-taburl]', 'click', function() {
+			var url = $(this).attr('data-taburl');
+			var tabbackfun = $(this).attr('data-tabbackfun');
+			if (tabbackfun) {
+				PF.open(url, window[tabbackfun]);
+			} else {
+				PF.open(url);
+			}
+		});
+	});
+}

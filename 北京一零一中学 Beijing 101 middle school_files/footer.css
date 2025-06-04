@@ -1,0 +1,196 @@
+@charset "utf-8";
+/* css 重置 */
+body, div, ul, li, dl, dt, dd, h2, p {
+    padding: 0;
+    margin: 0;
+    font-family: "微软雅黑";
+}
+
+ul {
+    list-style: none;
+}
+
+img {
+    border: none;
+}
+
+a {
+    blr: expression(this.onFocus=this.blur());
+    outline: none;
+}
+
+.footer-module {
+    /*padding: 70px 0 45px;*/
+    padding: 15px 0 15px;
+}
+
+.clearfix:after {
+	content: "."; 
+    display: block;   
+    clear: both;    
+    visibility: hidden;
+    height: 0;
+    font-size:0;
+}
+
+.bgWhite {
+    background: url("../css/images/footer-bg.png") #fff no-repeat right 30px;
+}
+
+.bgGray {
+    background: url("../css/images/footer-bg.png") #f5f5f5 no-repeat right 30px;
+}
+
+.footer-module .logoB {
+     width: 306px;
+     height: 86px;
+    margin-left: 245px;
+    margin-right: 120px;
+    margin-top: 40px;
+    cursor: pointer;
+ }
+
+.Contact-info {
+	position: relative;
+    width: 365px;
+    margin-top: 56px;
+    margin-bottom: 56px;
+    padding-left: 23px;
+    border-left:1px solid #e8e8e8 ;
+}
+
+.map {
+    display: none;
+    position: absolute;
+    top: -335px;
+    left: -158px;
+    width: 540px;
+    height: 323px;
+    z-index: 12;
+    background: #f00;
+    border: 1px solid #ccc;
+}
+
+.map i {
+    position: absolute;
+    display: block;
+    bottom: -10px;
+    left: 50%;
+    width: 21px;
+    height: 11px;
+    background: url("../css/images/ico-jiant.png");
+}
+
+#allmap {
+    width: 540px;
+    height: 323px;
+    overflow: hidden;
+}
+
+
+.Contact-info p {
+    padding-left: 23px;
+    background: url("../css/images/icon-bg.png") no-repeat;
+    font-size: 14px;
+    color: #666;
+}
+
+.Contact-info p.address {
+    margin-bottom: 20px;
+   background-position: -372px -10px;
+   cursor: pointer;
+}
+
+.Contact-info p.tel {
+    background-position: -372px -47px;
+}
+
+.Friend-chain {
+    width: 165px;
+    padding-left: 23px;
+    border-left:1px solid #e8e8e8 ;
+}
+
+.Friend-chain p {
+    float: left;
+    width: 100%;
+    font-size: 18px;
+    color: #666;
+}
+
+.Friend-chain a {
+	width:165px;
+    float: left;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.Friend-chain a:hover {
+    color: #961c17;
+}
+
+/* .footer-box { */
+/*     height: 45px; */
+/*     background: #4f4f4f; */
+/*     font-size: 14px; */
+/*     color: #fff; */
+/*     text-align: center; */
+/*     line-height: 45px; */
+/* } */
+
+.footer-box {
+    padding: 10px 0;
+    background: #4f4f4f;
+    font-size: 14px;
+    color: #fff;
+    text-align: center;
+}
+
+.FriendChain {
+    width: 600px;
+    margin: 0 auto;
+}
+
+.FriendChain p {
+    float: left;
+    line-height: 30px;
+     font-size: 14px;
+    color: #fff;
+}
+
+.FriendChain a {
+    float: left;
+    line-height: 30px;
+    font-size: 14px;
+    color: #fff;
+}
+
+.FriendChain a:hover {
+    color: #961c17;
+}
+
+.FriendChain span {
+    float: left;
+    line-height: 30px;
+}
+
+
+/*响应式*/
+@media screen and (min-width: 1280px) and (max-width: 1440px) {
+    .footer-module .logoB {
+        margin-left: 135px;
+    }
+}
+
+@media screen and (min-width: 990px) and (max-width: 1279px){
+    .footer-module .logoB {
+        width: 306px;
+        margin-left: 67px;
+        margin-right: 60px;
+    }
+
+    .Contact-info {
+        width: 299px;
+    }
+}

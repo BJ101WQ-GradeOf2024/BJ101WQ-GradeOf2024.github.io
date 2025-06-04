@@ -1,0 +1,1029 @@
+/**
+ * @author houpo@chinaedu.net
+ */
+if (typeof Edu == 'undefined') {
+	var Edu = {};
+}
+(function($) {
+	Edu.fn = {
+		/**
+		 * 合并多行为一行 tableId table的id conFun 比较两个单元格使用的函数 index 从哪一行开始合并 默认0
+		 */
+		mergeRows : function(tableId, conFun) {
+			var table = $("#" + tableId);
+			var trs = table.children("tbody").children("tr");
+			conFun = conFun || Edu.fn._cellEquals;
+			if (trs.length < 2)
+				return;
+			var colLen = trs.eq(0).children("td").length;
+			var rowLen = trs.length;
+			var tableArr = Edu.fn.make2x2Arr(rowLen);
+			for ( var i = 0; i < colLen; i++) {
+				var mergeCount = 1;
+				var pos = {// 记录当前合并到的位置
+					i : i,
+					j : 0
+				};
+				for ( var j = 0; j < rowLen - 1; j++) {
+					if (!tableArr[j][i]) {
+						tableArr[j][i] = 1;
+					}
+					tableArr[j + 1][i] = 1;
+					var td = trs.eq(j).children("td").eq(i);
+					var nextTd = trs.eq(j + 1).children("td").eq(i);
+					if (conFun.call(this, td, nextTd)) {
+						mergeCount++;
+						tableArr[j + 1][i] = -1;// 要删除的单元格
+						if (j == rowLen - 2) {// 如果比较到最后一行时
+							tableArr[pos.j][pos.i] = mergeCount;
+						}
+					} else {
+						if (mergeCount > 1) {
+							tableArr[pos.j][pos.i] = mergeCount;
+						}
+						pos.j = j + 1;
+						mergeCount = 1;
+					}
+				}
+			}
+			for ( var j = 0; j < rowLen; j++) {
+				for ( var i = colLen - 1; i >= 0; i--) {
+					if (tableArr[j][i] > 1) {
+						trs.eq(j).children("td").eq(i).attr("rowspan",
+								tableArr[j][i]);
+					} else if (tableArr[j][i] == -1) {
+						trs.eq(j).children("td").eq(i).remove();
+					}
+				}
+			}
+		},
+
+		/**
+		 * 默认比较两个单元格内容是否相等
+		 */
+		_cellEquals : function(td, nextTd) {
+			return $.trim(td.text()) == $.trim(nextTd.text());
+		},
+
+		/**
+		 * 合并多列为一列
+		 */
+		mergeCols : function(tableId, conFun) {
+			var table = $("#" + tableId);
+			var trs = table.children("tbody").children("tr");
+			conFun = conFun || Edu.fn._cellEquals;
+			if (trs.length < 2)
+				return;
+			var colLen = trs.eq(0).children("td").length;
+			var rowLen = trs.length;
+			var tableArr = Edu.fn.make2x2Arr(rowLen);
+			for ( var i = 0; i < rowLen; i++) {
+				var mergeCount = 1;
+				var pos = {// 记录当前合并到的位置
+					i : i,
+					j : 0
+				};
+				for ( var j = 0; j < colLen - 1; j++) {
+					if (!tableArr[i][j]) {
+						tableArr[i][j] = 1;
+					}
+					tableArr[i][j + 1] = 1;
+					var td = trs.eq(i).children("td").eq(j);
+					var nextTd = trs.eq(i).children("td").eq(j + 1);
+					if (conFun.call(this, td, nextTd)) {
+						mergeCount++;
+						tableArr[i][j + 1] = -1;// 要删除的单元格
+						if (j == colLen - 2) {// 如果比较到最后一行时
+							tableArr[pos.i][pos.j] = mergeCount;
+						}
+					} else {
+						if (mergeCount > 1) {
+							tableArr[pos.i][pos.j] = mergeCount;
+						}
+						pos.j = j + 1;
+						mergeCount = 1;
+					}
+				}
+			}
+			for ( var j = 0; j < rowLen; j++) {
+				for ( var i = colLen - 1; i >= 0; i--) {
+					if (tableArr[j][i] > 1) {
+						trs.eq(j).children("td").eq(i).attr("colspan",
+								tableArr[j][i]);
+					} else if (tableArr[j][i] == -1) {
+						trs.eq(j).children("td").eq(i).remove();
+					}
+				}
+			}
+		},
+
+		/**
+		 * 生成二维数组 n 行数
+		 */
+		make2x2Arr : function(n) {
+			var arr = new Array();
+			for ( var i = 0; i < n; i++) {
+				arr[i] = new Array();
+			}
+			return arr;
+		},
+		/**
+		 * js类继承
+		 */
+		extendClass : function(child, parent) {
+			child.prototype = $.extend(true, {}, parent.prototype,
+					child.prototype);
+			child.prototype.contractor = child;
+		},
+		/**
+		 * js对象深度复制
+		 */
+		cloneObject : function(source) {
+			if (typeof source !== "object") {
+				return source;
+			}
+			var s = {};
+			if ($.isArray(source)) {
+				s = [];
+			}
+			for ( var key in source) {
+				if (key.substr(0, 6) == 'jQuery') {
+					continue;
+				}
+				s[key] = this.cloneObject(source[key]);
+			}
+			return s;
+		},
+		/**
+		 * 把obj,填充到表单里边 ，form为jquery对象
+		 */
+		objectToForm : function(obj, form) {
+			if (obj && typeof obj === "object" && !$.isArray(obj)) {
+				this._objectToForm('', obj, form);
+			}
+		},
+
+		_objectToForm : function(prefix, obj, form) {
+			if (obj != null && !$.isArray(obj) && typeof obj !== "object"
+					&& typeof obj !== "function") {
+				prefix = prefix.replace(/\./g, '\\.').replace(/\[/g, '\\[')
+						.replace(/\]/g, '\\]');
+				var inp = form.find(':input[name="' + prefix + '"]');
+				if (inp.length > 0) {
+					inp.val(obj);
+				}
+			} else if (typeof obj === "object" && !$.isArray(obj)) {
+				for ( var p in obj)
+					this._objectToForm(prefix + (prefix == '' ? '' : ".") + p,
+							obj[p], form);
+			} else if ($.isArray(obj)) {
+				for ( var i = 0; i < obj.length; i++) {
+					var tmpPrefix = prefix + "[" + i + "]";
+					this._objectToForm(tmpPrefix, obj[i], form);
+				}
+			}
+		},
+		/**
+		 * 把表单转换为对象
+		 */
+		formToObject : function(form) {
+			var inps = form.serializeArray();
+			var obj = {};
+			this._sortFormValues(inps);
+			for ( var i = 0; i < inps.length; i++) {
+				var inp = inps[i];
+				this.setObjectProperty(obj, inp.name, inp.value);
+			}
+			return obj;
+		},
+		/**
+		 * 表单项以name属性排序
+		 */
+		_sortFormValues : function(inps) {
+			for ( var i = 0; i < inps.length; i++) {
+				for ( var j = 0; j < inps.length - i - 1; j++) {
+					if (inps[j + 1].name < inps[j].name) {
+						var act = inps[j + 1];
+						inps[j + 1] = inps[j];
+						inps[j] = act;
+					}
+				}
+			}
+		},
+		/**
+		 * 给一对象的单个字段设置值 eg.setObjectProperty(obj,'works[0].id','1')
+		 */
+		setObjectProperty : function(obj, field, value) {
+			var ps = field.split(".");
+			var nowObj = obj;
+			var matchs = null;
+			for ( var i = 0; i < ps.length - 1; i++) {
+				var f = ps[i];
+				var index = 0;
+				matchs = /^(.+)\[(\d+)\]$/.exec(f);
+				if (matchs) {
+					f = matchs[1];
+					index = matchs[2] * 1;
+				}
+				if (!(f in nowObj)) {
+					if (matchs) {
+						nowObj[f] = [];
+					} else {
+						nowObj[f] = {};
+					}
+				}
+				if (matchs) {
+					if (nowObj[f].length <= index || !nowObj[f][index]) {
+						nowObj[f][index] = {}
+					}
+					nowObj = nowObj[f][index];
+				} else {
+					nowObj = nowObj[f];
+				}
+			}
+			var lastF = ps[ps.length - 1];
+			matchs = /^(.+)\[(\d+)\]$/.exec(lastF);
+			if (matchs) {
+				nowObj[lastF][matchs[2] * 1] = value;
+			} else {
+				nowObj[lastF] = value;
+			}
+		},
+
+		// 表格排序
+		sortTable : function(el, tbodyId, evenClass, compareFun) {
+			// 添加其它列的状态
+			var nowTd = $(el);
+			if (!nowTd.is('td')) {
+				nowTd = nowTd.closest('td')
+			}
+			nowTd.siblings('td').each(function() {
+				if ($(this).find('[data-dirct]').length) {
+					$(this).find('[data-dirct]').attr('data-dirct', '');
+				} else {
+					$(this).attr('data-dirct', '');
+				}
+			});
+			var nowDirct = $(el).attr('data-dirct');
+			var table = $(el).closest('table');
+			var tbody = $('#' + tbodyId)
+			if (!nowDirct) {
+				nowDirct = 'asc';
+				$(el).attr('data-dirct', nowDirct);
+				reverse();
+				setSeq();
+			} else {
+				$(el).attr('data-dirct', nowDirct == 'asc' ? 'desc' : 'asc');
+				reverse();
+				setSeq();
+				return;
+			}
+
+			function reverse() {
+				var trs2 = table.find('tr:not(:first)');
+				for ( var i = trs2.length - 2; i >= 0; i--) {
+					trs2.eq(i).appendTo(tbody);
+				}
+			}
+
+			function setSeq() {
+				var tsq = table.find('.sequence');
+				for ( var i = 0; i < tsq.length; i++) {
+					tsq.eq(i).text((i + 1));
+					if (evenClass) {
+						var tmpTr = tsq.eq(i).closest('tr');
+						if (i % 2 == 0) {
+							tmpTr.removeClass(evenClass);
+						} else {
+							tmpTr.addClass(evenClass);
+						}
+					}
+				}
+			}
+
+			function getTdVal(td) {
+				var val = td.attr('data-val');
+				if (!val) {
+					val = $.trim(td.text());
+				}
+				if (/^[\d\.]+$/.test(val)) {
+					val = 1 * val;
+				}
+				return val;
+			}
+			if (!compareFun) {
+				compareFun = function(str1, str2) {
+					if (typeof str1 == "number" && typeof str2 == "number") {
+						return str1 - str2;
+					} else {
+						str1 = '' + str1;
+						str2 = '' + str2;
+						return str1.localeCompare(str2);
+					}
+				}
+			}
+			// 得到所有tr 得到单元格位置
+			var trs = $(el).closest('table').find('tr:not(:first)');
+			var index = $(el).closest('td').index();
+			for ( var i = 0; i < trs.length - 1; i++) {
+				for ( var j = 0; j < trs.length - 1 - i; j++) {
+					var str1 = getTdVal(trs.eq(j).find('td').eq(index));
+					var str2 = getTdVal(trs.eq(j + 1).find('td').eq(index));
+					if (compareFun(str1, str2) > 0) {
+						trs.eq(j + 1).after(trs.eq(j));
+						var tmp = trs[j + 1];
+						trs[j + 1] = trs[j];
+						trs[j] = tmp;
+					}
+				}
+			}
+			setSeq();
+		},
+		/**
+		 * 截取字符串，两个英文字符长度相当一个汉字的长度 author hp.
+		 * 
+		 * @param str
+		 * @param len
+		 *            返回的字符串的长度
+		 * @param suffix
+		 *            当超长时要显示的后缀
+		 * @returns
+		 */
+		cutStrForShow : function(str, len, suffix) {
+			if (str.length <= len) {
+				return str;
+			}
+			var nowLen = 0.0;
+			var reStr = [];
+			var sf = suffix || '...';
+			var sfLen = 0;
+			for ( var j = 0; j < sf.length; j++) {
+				sfLen += (sf.charCodeAt(i) <= 255 ? 0.5 : 1.0);
+			}
+			for ( var i = 0; i < str.length; i++) {
+				nowLen += (str.charCodeAt(i) <= 255 ? 0.5 : 1.0);
+				reStr.push(str.substr(i, 1));
+				if (nowLen >= len && i != str.length && sfLen != 0) {
+					for ( var j = i; j >= 0; j--) {
+						nowLen -= (str.charCodeAt(i) <= 255 ? 0.5 : 1.0);
+						reStr.pop();
+						if (nowLen + sfLen <= len) {
+							break;
+						}
+					}
+					reStr.push(sf);
+					break;
+				}
+			}
+			return reStr.join('');
+		},
+		/**
+		 * 移除所有的html标签
+		 */
+		removeHtmlTags : function(html) {
+			return html.replace(/\<.+?\>|&[a-zA-Z0-9]{2,5};/g, '');
+		},
+		isIE : function() { // ie?
+			if (!!window.ActiveXObject || "ActiveXObject" in window)
+				return true;
+			else
+				return false;
+		},
+		// 从url获取所有的参数
+		getUrlParams : function(url) {
+			var params = {};
+			if (!url) {
+				url = location.href;
+			}
+			var index = url.indexOf('?');
+			if (index < 0) {
+				return params;
+			}
+			var indexLast = url.indexOf('#') - 1;
+			if (indexLast < 0) {
+				indexLast = url.length - 1;
+			}
+			var paramStr = url.substr(index + 1, indexLast - index);
+			var paramArr = paramStr.split('&');
+			for ( var i = 0; paramStr && i < paramArr.length; i++) {
+				var tmpArr = paramArr[i].split('=');
+				if (tmpArr[0]) {
+					if (tmpArr[0] in params) {
+						if (!$.isArray(params[tmpArr[0]])) {
+							var tmpValue = params[tmpArr[0]];
+							params[tmpArr[0]] = [];
+							params[tmpArr[0]].push(tmpValue);
+						}
+						params[tmpArr[0]].push(tmpArr[1]);
+					} else {
+						params[tmpArr[0]] = tmpArr[1];
+					}
+				}
+			}
+			return params;
+		},
+		getAbsUrl : function(url) {
+			if (!url) {
+				url = location.href;
+			}
+			url = url.substring(url.indexOf("//") + 2);
+			var index = url.indexOf("/");
+			url = index >= 1 ? url.substring(index) : "";
+			var len = url.length;
+			for ( var i = url.length - 1; i > 0; i--) {
+				if (url.charAt(i) == "#") {
+					len--;
+				} else {
+					break;
+				}
+			}
+			return url.substring(0, len);
+		},
+		// 动态的显示输入了多少个字
+		textCount : function(inp, numEl, max) {
+			$(inp).bind('blur keyup mouseover mouseout', function() {
+				var len = $(this).val().length;
+				if (len > max) {
+					$(this).val($(this).val().substr(0, max));
+					len = max;
+				}
+				$(numEl).text(max - len);
+			});
+			$(numEl).text(max);
+		},
+		// 取出本地的值
+		get : function(key, defaultValue) {
+			if (window.localStorage) {
+				return localStorage.getItem(key) || defaultValue || "";
+			}
+		},
+		// 把值存到本地
+		put : function(key, value) {
+			if (window.localStorage) {
+				localStorage.setItem(key, value)
+			}
+		},
+		// 显示富文本编辑器
+		renderEditor : function(id, config, config2) {
+			var options = config
+					|| {
+						toolbar : [
+								// 加粗 斜体， 下划线 穿过线 下标字 上标字
+								[ 'Undo', 'Redo', 'Bold', 'Italic',
+										'Underline', 'Strike', 'Subscript',
+										'Superscript' ],
+								// 数字列表 实体列表 减小缩进 增大缩进
+								[ 'NumberedList', 'BulletedList', '-',
+										'Outdent', 'Indent' ],
+								// 左对 齐 居中对齐 右对齐 两端对齐
+								[ 'JustifyLeft', 'JustifyCenter',
+										'JustifyRight', 'JustifyBlock' ],
+								// 超链接 取消超链接 锚点
+								// ['Link','Unlink','Anchor','mathjax','Image'],
+								[ 'Link', 'Unlink', 'Anchor', 'kityformula' ],
+								// 图片 flash 表格 水平线 表情 特殊字符 分页符
+								[ 'Table', 'HorizontalRule', 'Smiley',
+										'SpecialChar'],
+								// 样式 格式 字体 字体大小
+								[ 'Styles', 'Format', 'Font', 'FontSize',
+										'TextColor', 'BGColor', 'Maximize',
+										'ShowBlocks' ]
+						// 文本颜色 背景颜色 //全屏 显示区块
+						]
+					};
+			if (config2) {
+				options = $.extend(options, config2);
+			}
+			CKEDITOR.config.removePlugins = 'elementspath';
+			var tmpEditor = CKEDITOR.replace(id, options);
+			tmpEditor.hasContents = function() {
+				return $.trim(this.getData());
+			}
+			tmpEditor.getContent = function() {
+				return $.trim(this.getData());
+			}
+			return tmpEditor;
+		},
+
+		// pickerId,
+		uploadImage : function(pickerId, imageFolder, extsStr, callback) {
+			extsStr = extsStr || '.jpg,.gif,.png,.jpeg';
+			imageFolder = imageFolder || "editor";
+			var allowExt = {};
+			var exts = extsStr.split(",");
+			for ( var i = 0; i < exts.length; i++) {
+				allowExt[exts[i]] = 1;
+			}
+			function getEditor(editorId) {
+				if (editorId) {
+					return CKEDITOR.instances[editorId];
+				}
+				for ( var p in CKEDITOR.instances) {
+					return CKEDITOR.instances[p];
+				}
+			}
+			var upOpt = {
+				resize : false,
+				swf : _basePath
+						+ 'resources/sunrise/js/common/webuploader-0.1.5/Uploader.swf',
+				server : _basePath + "picture/ueEditorUpFile.do?imageFolder="
+						+ imageFolder,
+				pick : '#' + pickerId,
+				fileVal : 'upfile',
+				auto : true,
+				duplicate : true
+			};
+			var uploader = WebUploader.create(upOpt);
+
+			// 当有文件添加进来的时候
+			uploader.on('fileQueued', function(file) {
+				top.$.dialog.tips("图片上传中", 1, "tips.gif");
+			});
+
+			function uploadAccept(obj, ret) {
+				if (!ret.success) {
+					top.$.dialog.tips(ret.message, 2, "tips.gif");
+					if (ret.overMaxCount) {
+						window.overMaxCount = true;
+					}
+					return;
+				}
+				if (callback) {
+					callback(ret);
+				}
+			}
+
+			uploader.on("uploadAccept", uploadAccept);
+			function shortArrStr(arr) {
+				var newArr = [];
+				for ( var i = 0; i < arr.length; i++) {
+					newArr.push(arr[i]);
+					if (i == arr.length - 1) {
+						break;
+					}
+					newArr.push(',');
+					if (i != 0 && i % 5 == 0) {
+						newArr.push('<br />');
+					}
+				}
+				return newArr.join('');
+			}
+			function beforeFileQueued(file) {
+				if (window.overMaxCount) {
+					top.$.dialog.tips("对不起，您今天上传的文件过多，明天再来上传吧！", 2, "tips.gif");
+					return false;
+				}
+				var ext = file.name.substr(file.name.lastIndexOf('.'))
+						.toLowerCase();
+				if (allowExt[ext]) {
+					return true;
+				} else {
+					$
+							.dialog({
+								id : 'uploadImageError',
+								parent : window.currentDialog,
+								title : '上传格式错误',
+								width : 660,
+								height : 325,
+								lock : true,
+								content : 'url:'
+										+ _basePath
+										+ 'common/uploadattachementerror/uploadImageError.do'
+							});
+					return false;
+				}
+			}
+			uploader.on('beforeFileQueued', beforeFileQueued);
+		},
+		// pickerId,
+		bindInsertImage : function(pickerId, editorId, extsStr) {
+			extsStr = extsStr || '.jpg,.gif,.png,.jpeg';
+			var allowExt = {};
+			var exts = extsStr.split(",");
+			for ( var i = 0; i < exts.length; i++) {
+				allowExt[exts[i]] = 1;
+			}
+			function getEditor(editorId) {
+				if (editorId) {
+					return CKEDITOR.instances[editorId];
+				}
+				for ( var p in CKEDITOR.instances) {
+					return CKEDITOR.instances[p];
+				}
+			}
+			var editor = getEditor(editorId);
+			var upOpt = {
+				resize : false,
+				swf : _basePath
+						+ 'resources/sunrise/js/common/webuploader-0.1.5/Uploader.swf',
+				server : _basePath + "picture/ueEditorUpFile.do",
+				pick : '#' + pickerId,
+				fileVal : 'upfile',
+				auto : true,
+				duplicate : true
+			};
+			var uploader = WebUploader.create(upOpt);
+
+			// 当有文件添加进来的时候
+			uploader.on('fileQueued', function(file) {
+				top.$.dialog.tips("图片上传中", 1, "tips.gif");
+			});
+
+			function uploadAccept(obj, ret) {
+				if (!ret.success) {
+					top.$.dialog.tips(ret.message, 2, "tips.gif");
+					if (ret.overMaxCount) {
+						window.overMaxCount = true;
+					}
+					return;
+				}
+				editor.insertHtml('<img src=\"' + ret.absUrl
+						+ '\" class="is-up" alt=\"\"/>');
+			}
+
+			uploader.on("uploadAccept", uploadAccept);
+			function shortArrStr(arr) {
+				var newArr = [];
+				for ( var i = 0; i < arr.length; i++) {
+					newArr.push(arr[i]);
+					if (i == arr.length - 1) {
+						break;
+					}
+					newArr.push(',');
+					if (i != 0 && i % 5 == 0) {
+						newArr.push('<br />');
+					}
+				}
+				return newArr.join('');
+			}
+			function beforeFileQueued(file) {
+				if (window.overMaxCount) {
+					top.$.dialog.tips("对不起，您今天上传的文件过多，明天再来上传吧！", 2, "tips.gif");
+					return false;
+				}
+				var $con = $(editor.getContent());
+				if ($con.find("img.is-up").length >= 5) {
+					top.$.dialog.alert("对不起，最多只能上传5张图片。", null,
+							window.currentDialog);
+					return false;
+				}
+				var ext = file.name.substr(file.name.lastIndexOf('.'))
+						.toLowerCase();
+				if (allowExt[ext]) {
+					return true;
+				} else {
+					$
+							.dialog({
+								id : 'uploadImageError',
+								parent : window.currentDialog,
+								title : '上传格式错误',
+								width : 660,
+								height : 325,
+								lock : true,
+								content : 'url:'
+										+ _basePath
+										+ 'common/uploadattachementerror/uploadImageError.do'
+							});
+					return false;
+				}
+			}
+			uploader.on('beforeFileQueued', beforeFileQueued);
+		},
+		bindUpFile : function(options) {
+			var serverUrl = options.serverUrl || window.uploadFileServerUrl, pickerId = options.pickerId || "pickerId", callback = options.callback || null;
+			var extsStr = options.extsStr || '.jpg,.gif,.png,.jpeg';
+			var context = options.context;
+			serverUrl = serverUrl + "?folder=" + options.folder + "&token=" + options.token;
+			var allowExt = {};
+			var exts = extsStr.split(",");
+			for (var i = 0; i < exts.length; i++) {
+				allowExt[exts[i]] = 1;
+			}
+			var upOpt = {
+				resize : false,
+				swf : _basePath + 'resources/school/js/third_party/webuploader/Uploader.swf',
+				server : serverUrl,
+				pick : '#' + pickerId,
+				fileVal : 'upfile',
+				auto : true,
+				duplicate : true
+			};
+			var uploader = WebUploader.create(upOpt);
+            var fileName;
+			// 当有文件添加进来的时候
+			uploader.on('fileQueued', function(file) {
+				top.$.dialog.tips("上传中", 1, "tips.gif");
+				$('.up-file-info', context).show();
+				var simpleName;
+				var lastIndex = file.name.lastIndexOf('.');
+				if(lastIndex && lastIndex > 0){
+					simpleName = file.name.substr(0, lastIndex);
+				}else{
+					simpleName = file.name;
+				}
+				$('.up-file-simpleName', context).each(function(){
+					if ($(this).is('input')) {
+						$(this).val(simpleName);
+					}else{
+						$(this).text(simpleName);
+					}
+				})
+				$('.up-file-name', context).each(function() {
+					if ($(this).is('input')) {
+						$(this).val(file.name);
+					}else{
+						$(this).text(file.name);
+						$(this).attr('title', file.name);
+					}
+				});
+				$('.up-file-path', context).val('');
+				$('.up-file-infos', context).text("(0%)" + file.name);
+				fileName = file.name;
+				uploader.upload(); // 选择成功后直接执行上传操作
+			});
+
+			uploader.on('uploadProgress', function(file, percentage) {
+				$('.up-file-infos', context).text('(' + Math.floor(percentage * 100) + '%)' + file.name);
+			});
+			
+			function uploadAccept(obj, ret) {
+				if (!ret.success) {
+					top.$.dialog.tips(ret.message, 2, "tips.gif");
+					return;
+				}
+				top.$.dialog.tips("上传成功", 1, "success.gif");
+				var fileSizeEL = $('.up-file-size', context);
+				if (fileSizeEL.length && fileSizeEL.is("input")) {
+					fileSizeEL.val(ret.fileSize);
+				}
+				$('.up-file-path', context).val(ret.filePath);
+				if (callback) {
+					callback(ret, fileName);
+				}
+			}
+
+			uploader.on("uploadAccept", uploadAccept);
+			function shortArrStr(arr) {
+				var newArr = [];
+				for (var i = 0; i < arr.length; i++) {
+					newArr.push(arr[i]);
+					if (i == arr.length - 1) {
+						break;
+					}
+					newArr.push(',');
+					if (i != 0 && i % 5 == 0) {
+						newArr.push('<br />');
+					}
+				}
+				return newArr.join('');
+			}
+			function beforeFileQueued(file) {
+				var ext = file.name.substr(file.name.lastIndexOf('.')).toLowerCase();
+				if (allowExt[ext]) {
+					return true;
+				} else {
+					top.$.dialog.alert("不支持该格式的文件。请选择<br />" + shortArrStr(exts) + "格式的文件。", null, window.currentDialog);
+					return false;
+				}
+			}
+			uploader.on('beforeFileQueued', beforeFileQueued);
+		},
+		// iframe自适就的问题。
+		resizeIframe : function(jqIframe) {
+			var iframe = jqIframe;
+			iframe.load(function() {
+				var iframe_content = iframe.contents().find('body');
+				iframe_content.resize(function() {
+					var elem = $(this);
+					iframe.css({
+						height : elem.outerHeight(true)
+					});
+				});
+
+				iframe_content.resize();
+			});
+		},
+
+		checkStudentCanDown : function(resourceId, callback) {
+			ajaxSubmit({
+				url : _basePath + 'student/userlimit/checkCanDown.do',
+				params : {
+					resourceId : resourceId
+				},
+				onSuccess : function(data) {
+					if (data.result) {
+						callback();
+					} else if (data.message) {
+						if (top.$.dialog) {
+							top.$.dialog.tips(data.message, 2, "tips.gif");
+						} else {
+							alert(data.message);
+						}
+					}
+				}
+			});
+		},
+
+		// 下载文件
+		down : function(resourceId) {
+			var iframe = $('#downFrame');
+			var url = _basePath + 'common/download/downfile.do?resourceId='
+					+ resourceId;
+			if (!iframe.length) {
+				$(
+						'<iframe id="" src="' + url
+								+ '" style="display:none;"></iframe>')
+						.appendTo($('body'));
+			} else {
+				$('#downFrame').attr('src', url);
+			}
+		},
+		// tab滚动
+		configTab : function() {
+			var li = $(".test_labe li");
+			var showobj = $(".test_labeselect").attr("rel");
+			$("#" + showobj + "").show();
+			var tabWidth = $('.classtit').outerWidth() - 30;
+			var setLiWidth = Math.round(tabWidth / 8);
+			li.width(setLiWidth);
+			li.click(function() {
+				$(".labelh").hide();
+				li.removeClass("test_labeselect");
+				var t = $(this);
+				t.addClass("test_labeselect");
+				$("#" + t.attr("rel") + "").show()
+			});
+		},
+		tabMove : function() {
+			var leftbtn = $(".leftbtn_labe");
+			var rightbtn = $(".rigthbtn_labe");
+			var o = $(".test_labe")[0];
+			var ulli = $(".rOrange li");
+			var rollWidth = $('.class_roll').width();
+			// 计算li总宽度
+			var allWidth = 0;
+			for ( var i = 0; i < ulli.length; i++) {
+				allWidth += ulli.eq(i).outerWidth();
+			}
+			leftbtn.find("span").removeClass("jt_l");
+			if (allWidth > rollWidth) {
+				$(".rOrange").width(allWidth);
+				rightbtn.find("span").addClass("jt_r");
+				leftbtn.click(function() {
+					o.scrollLeft -= ulli.width();
+					if (o.scrollLeft == 0) {
+						leftbtn.find("span").removeClass("jt_l");
+						rightbtn.find("span").addClass("jt_r")
+					}
+					if (o.scrollLeft > 0) {
+						leftbtn.find("span").addClass("jt_l");
+						rightbtn.find("span").addClass("jt_r")
+					}
+				});
+				rightbtn.click(function() {
+					o.scrollLeft += ulli.width();
+					if (o.scrollLeft > 0) {
+						leftbtn.find("span").addClass("jt_l");
+						rightbtn.find("span").addClass("jt_r");
+					}
+
+					if (o.scrollLeft == (ulli.length - 8) * ulli.width() - 2) {
+						rightbtn.find("span").removeClass("jt_r");
+
+					}
+				});
+			} else {
+				$(".leftbtn_labe,.rigthbtn_labe").hide();
+			}
+		},
+		// Edu.fn.initMoveListItem($('#cloud-rand-ask-lasttime',5));
+		initMoveListItem : function(panel, pageSize) {
+			$(".btnPrev", panel).unbind('click.moveItem');
+			$(".btnNext", panel).unbind('click.moveItem');
+			$(".btnNext", panel).removeAttr("disabled").removeClass(
+					'prompt-next-disable').addClass('prompt-next');
+			$(".btnPrev", panel).attr("disabled", "disabled").removeClass(
+					'prompt-prev').addClass('prompt-prev-disable').bind(
+					'click.moveItem',
+					function() {
+						$(".btnNext", panel).removeAttr("disabled")
+								.removeClass('prompt-next-disable').addClass(
+										'prompt-next');
+						var currentPromptPage = Number($(this).siblings(
+								"input[name='currentPromptPage']").val());
+						currentPromptPage -= 1;
+						$(this).siblings("input[name='currentPromptPage']")
+								.val(currentPromptPage);
+						$("li:not(:first)", panel).show();
+						var indexStart = (currentPromptPage - 1) * pageSize;
+						var indexEnd = indexStart + (pageSize - 1);
+						$(
+								"li:not(:first):lt(" + indexStart
+										+ "), li:not(:first):gt(" + indexEnd
+										+ ")", panel).hide();
+						if (currentPromptPage == 1)
+							$(this).attr("disabled", "disabled").addClass(
+									'prompt-prev-disable');
+					});
+			$(".btnNext", panel).bind(
+					'click.moveItem',
+					function() {
+						$(".btnPrev", panel).removeAttr("disabled")
+								.removeClass('prompt-prev-disable').addClass(
+										'prompt-prev');
+						var currentPromptPage = Number($(this).siblings(
+								"input[name='currentPromptPage']").val());
+						currentPromptPage += 1;
+						$(this).siblings("input[name='currentPromptPage']")
+								.val(currentPromptPage);
+						$("li:not(:first)", panel).show();
+						var indexStart = (currentPromptPage - 1) * pageSize;
+						var indexEnd = currentPromptPage * pageSize - 1 > $(
+								"li:not(:first)", panel).length - 1 ? $(
+								"li:not(:first)", panel).length - 1
+								: currentPromptPage * pageSize - 1;
+						$(
+								"li:not(:first):lt(" + indexStart
+										+ "), li:not(:first):gt(" + indexEnd
+										+ ")", panel).hide();
+						var total = Math.ceil($("li:not(:first)", panel).length
+								/ pageSize);
+						if (currentPromptPage == total)
+							$(this).attr("disabled", "disabled").addClass(
+									'prompt-next-disable').removeClass(
+									'prompt-next');
+					});
+		},
+		playPPT : function(url) {
+			var tmpl = $('<div id="pptTmpl"><iframe frameborder="0" id="pptIframe" src="'
+					+ url
+					+ '"></iframe><button id="pptClose" title="关闭" onclick="Edu.fn.closePPT();"></button></div>');
+			var doc = top.document;
+			$('body', doc).addClass('hiddenScorller').prepend(tmpl);
+			var height = doc.documentElement.clientHeight;
+			var width = doc.documentElement.clientWidth;
+			$('#pptTmpl', doc).height(height);
+			$('#pptTmpl', doc).width(width);
+			$(top).bind('resize.ppt', function() {
+				var height = doc.documentElement.clientHeight;
+				var width = doc.documentElement.clientWidth;
+				$('#pptTmpl', doc).height(height);
+				$('#pptTmpl', doc).width(width);
+			});
+		},
+		maxIframe : function(ifr) {
+			ifr.addClass('ppt-max-iframe');
+			ifr.closest('body').addClass('hiddenScorller');
+		},
+		minIframe : function(ifr) {
+			ifr.removeClass('ppt-max-iframe');
+			ifr.closest('body').removeClass('hiddenScorller');
+		},
+		closePPT : function() {
+			var doc = top.document;
+			$('#pptTmpl', doc).remove();
+			$('body', doc).removeClass('hiddenScorller');
+			$(top).unbind('resize.ppt');
+		},
+		fullScreen : function() {
+			var el = document.documentElement, rfs = el.requestFullScreen
+					|| el.webkitRequestFullScreen || el.mozRequestFullScreen
+					|| el.msRequestFullScreen, wscript;
+			try {
+				if (typeof rfs != "undefined" && rfs) {
+					rfs.call(el);
+					return;
+				}
+
+				if (typeof window.ActiveXObject != "undefined") {
+					wscript = new ActiveXObject("WScript.Shell");
+					if (wscript) {
+						wscript.SendKeys("{F11}");
+					}
+				}
+			} catch (e) {
+			}
+		},
+
+		exitFullScreen : function() {
+			var el = document, cfs = el.cancelFullScreen
+					|| el.webkitCancelFullScreen || el.mozCancelFullScreen
+					|| el.exitFullScreen, wscript;
+			try {
+				if (typeof cfs != "undefined" && cfs) {
+					cfs.call(el);
+					return;
+				}
+
+				if (typeof window.ActiveXObject != "undefined") {
+					wscript = new ActiveXObject("WScript.Shell");
+					if (wscript != null) {
+						wscript.SendKeys("{F11}");
+					}
+				}
+			} catch (e) {
+			}
+
+		}
+	};
+})(jQuery)
